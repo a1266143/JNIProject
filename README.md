@@ -1,2 +1,3 @@
 # JNIProject
-JNI练习
+
+练习JNI常用操作
