@@ -18,5 +18,8 @@ public class JNI {
 
     //调用C++中的空方法
     public native void invokeFunction();
-
+    //传递基本数据类型给C++
+    public native void transformBasicData(boolean boolValue,byte byteValue,char charValue,short shortValue,int intValue,long longValue,float floatValue,double doubleValue);
+    //传递基本数据类型数组给C++
+    public native void transformBasicDataArray(boolean[] booleanArray,byte[] byteArray,char[] charArray,short[] shortArray,int[] intArray,long[] longArray,float[] floatArray,double[] doubleArray);
 }
