@@ -35,6 +35,32 @@ public class MainActivity extends AppCompatActivity {
         for (int i = 0; i < list.size(); i++) {
             Log.e("xiaojun","获取到的ArrayList.get="+list.get(i));
         }
-
+        //多线程调用某一个jni函数
+        multiThreadOpearteNativeMethod();
     }
+
+    private void multiThreadOpearteNativeMethod(){
+        Object objLock = new Object();
+        Thread thread1 = new Thread(new MRunnable(objLock),"thread-1");
+        Thread thread2 = new Thread(new MRunnable(objLock),"thread-2");
+        thread1.start();
+        thread2.start();
+    }
+
+    class MRunnable implements Runnable{
+
+        private Object mObjLock;
+
+        public MRunnable(Object objLock){
+            this.mObjLock = objLock;
+        }
+
+        @Override
+        public void run() {
+            Log.e("xiaojun","开始调用 "+Thread.currentThread().getName()+" 线程");
+            JNI.getInstance().multiThreadOperation(this.mObjLock);
+            Log.e("xiaojun","调用 "+Thread.currentThread().getName()+" 线程------完成");
+        }
+    }
+
 }

@@ -39,4 +39,13 @@ public class JNI {
     public native boolean getBooleanValue();
     //返回引用类型
     public native Quote getQuoteValue();
+
+    //------------------------------------------------多线程---------------------------------------------------
+
+    /**
+     * 多线程调用此函数测试线程同步问题
+     * 本地方法被多个线程调用
+     * @param objLock java层的同步锁对象
+     */
+    public native void multiThreadOperation(Object objLock);
 }

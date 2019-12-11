@@ -26,13 +26,15 @@ void JNI_transformBasicDataArray(JNIEnv *env, jclass clazz, jbooleanArray boolea
 
 void JNI_transformQuoteData(JNIEnv *env, jclass clazz, jstring str);
 
-void JNI_transformQuoteDataList(JNIEnv *env,jclass clazz,jobject arrayList);
+void JNI_transformQuoteDataList(JNIEnv *env, jclass clazz, jobject arrayList);
 
 jint JNI_getIntValue(JNIEnv *env, jclass clazz);
 
 jboolean JNI_getBooleanValue(JNIEnv *env, jclass clazz);
 
 jobject JNI_getQuoteValue(JNIEnv *env, jclass clazz);
+
+void JNI_multiThreadOperation(JNIEnv *env, jclass clazz, jobject objLock);
 
 /**
  * JNI方法声明
@@ -42,10 +44,11 @@ const JNINativeMethod nativeMethods[] = {
         {"transformBasicData",      "(ZBCSIJFD)V",                      (void *) JNI_transformBasicData},
         {"transformBasicDataArray", "([Z[B[C[S[I[J[F[D)V",              (void *) JNI_transformBasicDataArray},
         {"transformQuoteData",      "(Ljava/lang/String;)V",            (void *) JNI_transformQuoteData},
-        {"transformQuoteDataList",           "(Ljava/util/ArrayList;)V", (void *) JNI_transformQuoteDataList},
+        {"transformQuoteDataList",  "(Ljava/util/ArrayList;)V",         (void *) JNI_transformQuoteDataList},
         {"getIntValue",             "()I",                              (void *) JNI_getIntValue},
         {"getBooleanValue",         "()Z",                              (void *) JNI_getBooleanValue},
         {"getQuoteValue",           "()Lcom/example/jniproject/Quote;", (void *) JNI_getQuoteValue},
+        {"multiThreadOperation",    "(Ljava/lang/Object;)V",            (void *) JNI_multiThreadOperation},
 };
 
 /**
@@ -150,14 +153,15 @@ void JNI_transformQuoteData(JNIEnv *env, jclass clazz, jstring str) {
     env->ReleaseStringUTFChars(str, chars);
 }
 
-void JNI_transformQuoteDataList(JNIEnv *env,jclass clazz,jobject arrayList){
+void JNI_transformQuoteDataList(JNIEnv *env, jclass clazz, jobject arrayList) {
     jclass classArrayList = env->GetObjectClass(arrayList);
-    jmethodID  methodID_ArrayList_add = env->GetMethodID(classArrayList,"add","(Ljava/lang/Object;)Z");
+    jmethodID methodID_ArrayList_add = env->GetMethodID(classArrayList, "add",
+                                                        "(Ljava/lang/Object;)Z");
     jstring strValue = env->NewStringUTF("additem0");
-    jint result = env->CallBooleanMethod(arrayList,methodID_ArrayList_add,strValue);
-    if (result){
+    jint result = env->CallBooleanMethod(arrayList, methodID_ArrayList_add, strValue);
+    if (result) {
         LOGD("底层给ArrayList增加对象成功");
-    }else{
+    } else {
         LOGD("底层给ArrayList增加对象失败");
     }
 }
@@ -185,21 +189,42 @@ jobject JNI_getQuoteValue(JNIEnv *env, jclass clazz) {
     const char *cStr = "cpp";
     jstring str = env->NewStringUTF(cStr);
     //创建ArrayList对象,并且添加数据到数据集中
-    /*jclass classArrayList = env->FindClass("java/util/ArrayList");
+    jclass classArrayList = env->FindClass("java/util/ArrayList");
     jobject objArrayList = env->AllocObject(classArrayList);
     jmethodID methodIDArrayList_add = env->GetMethodID(classArrayList, "add","(Ljava/lang/Object;)Z");
     jstring jstr = env->NewStringUTF("c++ArrayValue");
-    jboolean result = env->CallBooleanMethod(objArrayList, methodIDArrayList_add, jstr);
-    if (!result) {
-        LOGD("c++增加数据到ArrayList失败");
+
+// TODO this will crash when set jstr to the following method
+//    jboolean result = env->CallBooleanMethod(objArrayList, methodIDArrayList_add, jstr);
+//    if (!result) {
+//        LOGD("c++增加数据到ArrayList失败");
 //        return NULL;
-    }*/
+//    }
 
     env->CallVoidMethod(objQuote, methodIDQuote_setIntValue, intValue);
     env->CallVoidMethod(objQuote, methodIDQuote_setStrValue, str);
-//    env->CallVoidMethod(objQuote, methodIDQuote_setListValue, objArrayList);
+    env->CallVoidMethod(objQuote, methodIDQuote_setListValue, objArrayList);
 
     return objQuote;
 
+}
+
+#include <thread>
+#include <chrono>//时间
+
+//这里使用c++11中的线程库实现线程sleep操作(注意，请在module中加入cppFlags "-std=c++11"以支持c++11
+void JNI_multiThreadOperation(JNIEnv *env, jclass clazz, jobject objLock) {
+    //进入同步区(临界区)，类似于Synchronzied
+    jint lockEnterStatus = env->MonitorEnter(objLock);
+    LOGD("线程正在执行");
+    if (lockEnterStatus == JNI_OK) {
+        //执行耗时操作,这里睡眠5秒
+        std::chrono::milliseconds duration(5000);
+        std::this_thread::sleep_for(duration);
+    }
+    //退出临界区
+    jint lockExitStatus = env->MonitorExit(objLock);
+    LOGD("线程执行完成");
+//    if (lockExitStatus == JNI_OK)
 }
 
