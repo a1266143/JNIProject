@@ -39,7 +39,8 @@ public class JNI {
     public native boolean getBooleanValue();
     //返回引用类型
     public native Quote getQuoteValue();
-
+    //返回集合类型
+    public native ArrayList<Quote> getQuotesValue();
     //------------------------------------------------多线程---------------------------------------------------
 
     /**

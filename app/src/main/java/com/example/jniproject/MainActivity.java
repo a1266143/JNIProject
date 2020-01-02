@@ -37,6 +37,11 @@ public class MainActivity extends AppCompatActivity {
         }
         //多线程调用某一个jni函数
         multiThreadOpearteNativeMethod();
+
+        //返回ArrayList
+        ArrayList<Quote> listQuotes = JNI.getInstance().getQuotesValue();
+        Log.e("xiaojun","listQuote的数量为:"+listQuotes.size());
+        Log.e("xiaojun","第一个Quote的值为:"+listQuotes.get(0).getIntValue());
     }
 
     private void multiThreadOpearteNativeMethod(){

@@ -36,6 +36,8 @@ jobject JNI_getQuoteValue(JNIEnv *env, jclass clazz);
 
 void JNI_multiThreadOperation(JNIEnv *env, jclass clazz, jobject objLock);
 
+jobject JNI_getQuotesValue(JNIEnv *env,jclass clazz);
+
 /**
  * JNI方法声明
  */
@@ -49,6 +51,7 @@ const JNINativeMethod nativeMethods[] = {
         {"getBooleanValue",         "()Z",                              (void *) JNI_getBooleanValue},
         {"getQuoteValue",           "()Lcom/example/jniproject/Quote;", (void *) JNI_getQuoteValue},
         {"multiThreadOperation",    "(Ljava/lang/Object;)V",            (void *) JNI_multiThreadOperation},
+        {"getQuotesValue",    "()Ljava/util/ArrayList;",            (void *) JNI_getQuotesValue},
 };
 
 /**
@@ -171,7 +174,9 @@ jint JNI_getIntValue(JNIEnv *env, jclass clazz) {
 }
 
 jboolean JNI_getBooleanValue(JNIEnv *env, jclass clazz) {
-    return 0;//false
+    bool result = false;
+    return static_cast<jboolean>(result);
+//    return 0;//false
 //    return 123;//true
 }
 
@@ -228,3 +233,22 @@ void JNI_multiThreadOperation(JNIEnv *env, jclass clazz, jobject objLock) {
 //    if (lockExitStatus == JNI_OK)
 }
 
+jobject JNI_getQuotesValue(JNIEnv *env,jclass clazz){
+    //新建ArrayList对象
+    jclass cls_ArrayList = env->FindClass("java/util/ArrayList");
+//    jobject obj_ArrayList = env->AllocObject(cls_ArrayList);
+    //构造方法(注意:这里新建ArrayList对象不能调用上面的AllocObject方法，会Crash)
+    jmethodID methoID_listInit = env->GetMethodID(cls_ArrayList,"<init>","()V");
+    jobject obj_ArrayList = env->NewObject(cls_ArrayList,methoID_listInit);
+    jmethodID methodID_add = env->GetMethodID(cls_ArrayList,"add","(Ljava/lang/Object;)Z");
+    //新建Quote对象
+    jclass cls_Quote = env->FindClass("com/example/jniproject/Quote");
+    jobject obj_Quote = env->AllocObject(cls_Quote);
+    jmethodID methodID_setIntValue = env->GetMethodID(cls_Quote,"setIntValue","(I)V");
+    env->CallVoidMethod(obj_Quote,methodID_setIntValue,10);
+    //新建Object对象
+
+    //调用ArrayList中的add方法
+    env->CallObjectMethod(obj_ArrayList,methodID_add,obj_Quote);
+    return obj_ArrayList;
+}
