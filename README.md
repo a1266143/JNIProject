@@ -38,4 +38,6 @@
 
 # TODO
 
-C++ 中子线程调用JNI（子线程FindClass无用问题）
+C++中子线程调用JNI（子线程FindClass无用问题）
+
+C++中访问Java枚举
