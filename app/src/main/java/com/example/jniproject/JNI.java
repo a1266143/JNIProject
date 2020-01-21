@@ -40,7 +40,7 @@ public class JNI {
     //返回引用类型
     public native Quote getQuoteValue();
     //返回集合类型
-    public native ArrayList<Quote> getQuotesValue();
+    public native ArrayList<Quote> getArrayList();
     //------------------------------------------------多线程---------------------------------------------------
 
     /**
