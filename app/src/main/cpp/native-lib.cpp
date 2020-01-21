@@ -40,6 +40,8 @@ void JNI_multiThreadOperation(JNIEnv *env, jclass clazz, jobject objLock);
 
 jobject JNI_getArrayList(JNIEnv *env,jclass clazz);
 
+jobject JNI_getEnumColor(JNIEnv *env,jclass clazz);
+
 /**
  * JNI方法声明
  */
@@ -54,6 +56,7 @@ const JNINativeMethod nativeMethods[] = {
         {"getQuoteValue",           "()Lcom/example/jniproject/Quote;", (void *) JNI_getQuoteValue},
         {"multiThreadOperation",    "(Ljava/lang/Object;)V",            (void *) JNI_multiThreadOperation},
         {"getArrayList",    "()Ljava/util/ArrayList;",            (void *) JNI_getArrayList},
+        {"getEnumColor",    "()Lcom/example/jniproject/EnumWrapper$Color;",            (void *) JNI_getEnumColor},
 };
 
 /**
@@ -232,6 +235,15 @@ jobject JNI_getArrayList(JNIEnv *env,jclass clazz){
     //调用ArrayList中的add方法
     env->CallBooleanMethod(obj_ArrayList,methodID_add,obj_Quote);
     return obj_ArrayList;
+}
+
+//因为枚举类是一个内部类，所以在签名的地方表示内部类中需要写成 Class$Class,以$连接
+//因为枚举也是类，枚举中的值是静态变量
+jobject JNI_getEnumColor(JNIEnv *env,jclass clazz){
+    jclass cls_enumColor = env->FindClass("com/example/jniproject/EnumWrapper$Color");
+    jfieldID fid_RED = env->GetStaticFieldID(cls_enumColor,"GREEN","Lcom/example/jniproject/EnumWrapper$Color;");
+    jobject obj_RED = env->GetStaticObjectField(cls_enumColor,fid_RED);
+    return obj_RED;
 }
 
 

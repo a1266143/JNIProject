@@ -40,6 +40,8 @@ public class MainActivity extends AppCompatActivity {
         ArrayList<Quote> listQuotes = JNI.getInstance().getArrayList();
         Log.e("xiaojun","listQuote的数量为:"+listQuotes.size());
         Log.e("xiaojun","第一个Quote的值为:"+listQuotes.get(0).getIntValue());
+        EnumWrapper.Color color = JNI.getInstance().getEnumColor();
+        Log.e("xiaojun","获取到的Color为:"+color);
         //多线程调用某一个jni函数
         multiThreadOpearteNativeMethod();
     }

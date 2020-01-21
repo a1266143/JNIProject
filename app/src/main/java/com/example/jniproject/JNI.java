@@ -41,6 +41,8 @@ public class JNI {
     public native Quote getQuoteValue();
     //返回集合类型
     public native ArrayList<Quote> getArrayList();
+    //返回枚举类型
+    public native EnumWrapper.Color getEnumColor();
     //------------------------------------------------多线程---------------------------------------------------
 
     /**
