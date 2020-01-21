@@ -38,4 +38,4 @@
 
 # TODO
 
-C++中 JNIEnv->NewStringUTF new出的字符串设置给引用对象Crash的问题
+C++ 中子线程调用JNI（子线程FindClass无用问题）
