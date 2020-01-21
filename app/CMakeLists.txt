@@ -3,6 +3,7 @@
 #指定CMake的最低版本，这将影响你能使用的Cmake的功能
 cmake_minimum_required(VERSION 3.4.1)
 
+
 #---------------------添加库-----------------------
 add_library(
 # 指定库名称
@@ -23,6 +24,22 @@ src/main/cpp/native-lib.cpp )
 #通过find_library()命令定义一个变量来定位并存储NDK库的路径
 #你可以通过这个变量在本脚本的另外的部分指定NDK库
 
+#---------------------添加Oboe-------------------------
+# Set the path to the Oboe directory.
+set (OBOE_DIR ../../oboe)
+
+# Add the Oboe library as a subdirectory in your project.
+# add_subdirectory tells CMake to look in this directory to
+# compile oboe source files using oboe's CMake file.
+# ./oboe specifies where the compiled binaries will be stored
+add_subdirectory (${OBOE_DIR} ./oboe)
+
+# Specify the path to the Oboe header files.
+# This allows targets compiled with this CMake (application code)
+# to see public Oboe headers, in order to access its API.
+include_directories (${OBOE_DIR}/include)
+
+
 find_library(
 #定义一个log库的别名
 log-lib
@@ -37,6 +54,8 @@ log
 target_link_libraries(
 #指定链接的目标库
 native-lib
+#链接oboe
+oboe
 #指定你想要链接的库
 ${log-lib}
 )

@@ -4,7 +4,9 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 
+import java.security.PublicKey;
 import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
@@ -13,7 +15,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        JNI.getInstance().invokeFunction();//调用JNI方法
+        /*JNI.getInstance().invokeFunction();//调用JNI方法
         JNI.getInstance().transformBasicData(false,(byte)11,'c',(short)22,1222,223222422,111.11f,22.22220000);
         boolean[] booleanArray = {true};
         byte[] byteArray = {(byte)1,(byte)2};
@@ -41,7 +43,21 @@ public class MainActivity extends AppCompatActivity {
         //返回ArrayList
         ArrayList<Quote> listQuotes = JNI.getInstance().getQuotesValue();
         Log.e("xiaojun","listQuote的数量为:"+listQuotes.size());
-        Log.e("xiaojun","第一个Quote的值为:"+listQuotes.get(0).getIntValue());
+        Log.e("xiaojun","第一个Quote的值为:"+listQuotes.get(0).getIntValue());*/
+//        JNI.getInstance().enumTest();
+//        Log.e("xiaojun","JNI设置颜色过后得到的颜色值:"+EnumTest.getColor());
+    }
+
+    public void testOboe(View view){
+        JNI.getInstance().testOboe();
+    }
+
+    public void play(View view){
+        JNI.getInstance().play();
+    }
+
+    public void pause(View view){
+        JNI.getInstance().pause();
     }
 
     private void multiThreadOpearteNativeMethod(){

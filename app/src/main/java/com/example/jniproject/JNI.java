@@ -49,4 +49,16 @@ public class JNI {
      * @param objLock java层的同步锁对象
      */
     public native void multiThreadOperation(Object objLock);
+
+    //-------------------------------------------------Test--------------------------------------------
+    //枚举类型测试
+    public native void enumTest();
+
+    //--------------------------------------------高性能音频-----------------------------------------
+    public native void testOboe();
+
+    public native void play();
+
+    public native void pause();
+
 }

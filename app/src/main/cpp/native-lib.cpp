@@ -38,6 +38,14 @@ void JNI_multiThreadOperation(JNIEnv *env, jclass clazz, jobject objLock);
 
 jobject JNI_getQuotesValue(JNIEnv *env,jclass clazz);
 
+void JNI_enumTest(JNIEnv* env,jclass cls);
+
+void JNI_testOboe();
+
+void JNI_play();
+
+void JNI_pause();
+
 /**
  * JNI方法声明
  */
@@ -52,6 +60,10 @@ const JNINativeMethod nativeMethods[] = {
         {"getQuoteValue",           "()Lcom/example/jniproject/Quote;", (void *) JNI_getQuoteValue},
         {"multiThreadOperation",    "(Ljava/lang/Object;)V",            (void *) JNI_multiThreadOperation},
         {"getQuotesValue",    "()Ljava/util/ArrayList;",            (void *) JNI_getQuotesValue},
+        {"enumTest",    "()V",            (void *) JNI_enumTest},
+        {"testOboe",    "()V",            (void *) JNI_testOboe},
+        {"play",    "()V",            (void *) JNI_play},
+        {"pause",    "()V",            (void *) JNI_pause},
 };
 
 /**
@@ -241,6 +253,7 @@ jobject JNI_getQuotesValue(JNIEnv *env,jclass clazz){
     jmethodID methoID_listInit = env->GetMethodID(cls_ArrayList,"<init>","()V");
     jobject obj_ArrayList = env->NewObject(cls_ArrayList,methoID_listInit);
     jmethodID methodID_add = env->GetMethodID(cls_ArrayList,"add","(Ljava/lang/Object;)Z");
+
     //新建Quote对象
     jclass cls_Quote = env->FindClass("com/example/jniproject/Quote");
     jobject obj_Quote = env->AllocObject(cls_Quote);
@@ -251,4 +264,71 @@ jobject JNI_getQuotesValue(JNIEnv *env,jclass clazz){
     //调用ArrayList中的add方法
     env->CallObjectMethod(obj_ArrayList,methodID_add,obj_Quote);
     return obj_ArrayList;
+}
+
+//JNI中测试枚举类型
+//枚举可以看成一个普通的类，然后枚举中的值是枚举类中的public static field
+void JNI_enumTest(JNIEnv* env,jclass cls){
+    jclass cls_EnumTest$Color = env->FindClass("com/example/jniproject/EnumTest$Color");
+    jfieldID fieldID_GREEN = env->GetStaticFieldID(cls_EnumTest$Color,"RED","Lcom/example/jniproject/EnumTest$Color;");
+    jobject enum_Color_GREEN =env->GetStaticObjectField(cls_EnumTest$Color,fieldID_GREEN);
+
+    jclass cls_EnumTest = env->FindClass("com/example/jniproject/EnumTest");
+    jmethodID methodID_setColor = env->GetStaticMethodID(cls_EnumTest,"setColor","(Lcom/example/jniproject/EnumTest$Color;)V");
+    env->CallStaticVoidMethod(cls_EnumTest,methodID_setColor,enum_Color_GREEN);
+}
+
+#include <oboe/Oboe.h>
+
+class MyCallback : public oboe::AudioStreamCallback{
+public:
+    oboe::DataCallbackResult onAudioReady(oboe::AudioStream *audioStream,void *audioData,int32_t numFrames){
+        // We requested AudioFormat::Float so we assume we got it.
+        // For production code always check what format
+        // the stream has and cast to the appropriate type.
+        auto *outputData = static_cast<float *>(audioData);
+
+        LOGE("回调了,numFrames=%d",numFrames);
+
+        // Generate random numbers (white noise) centered around zero.
+        const float amplitude = 0.2f;
+        for (int i = 0; i < numFrames; ++i){
+            outputData[i] = ((float)drand48() - 0.5f) * 2 * amplitude;
+        }
+
+        return oboe::DataCallbackResult::Continue;
+    }
+};
+
+MyCallback myCallback;
+oboe::ManagedStream managedStream;
+void JNI_testOboe(){
+    oboe::AudioStreamBuilder builder;
+
+    builder.setDirection(oboe::Direction::Output)
+    ->setPerformanceMode(oboe::PerformanceMode::LowLatency)
+    ->setSharingMode(oboe::SharingMode::Exclusive)
+    ->setFormat(oboe::AudioFormat::Float)
+    ->setCallback(&myCallback);
+
+
+    oboe::Result result = builder.openManagedStream(managedStream);
+
+    if (result != oboe::Result::OK) {
+        LOGE("Failed to create stream. Error: %s", oboe::convertToText(result));
+    }
+
+    oboe::AudioFormat format = managedStream->getFormat();
+    LOGE("AudioStream format is %s", oboe::convertToText(format));
+
+//    managedStream->requestStart();
+}
+
+void JNI_play(){
+    managedStream->requestStart();
+}
+
+void JNI_pause(){
+    managedStream->requestPause();
+    managedStream->requestFlush();
 }
