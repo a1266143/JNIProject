@@ -7,6 +7,10 @@ import android.util.Log;
 
 import java.util.ArrayList;
 
+/**
+ * MainActivity
+ * created by xiaojun
+ */
 public class MainActivity extends AppCompatActivity {
 
     boolean[] booleanArray = {true};
