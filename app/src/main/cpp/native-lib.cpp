@@ -38,25 +38,32 @@ jobject JNI_getQuoteValue(JNIEnv *env, jclass clazz);
 
 void JNI_multiThreadOperation(JNIEnv *env, jclass clazz, jobject objLock);
 
-jobject JNI_getArrayList(JNIEnv *env,jclass clazz);
+jobject JNI_getArrayList(JNIEnv *env, jclass clazz);
 
-jobject JNI_getEnumColor(JNIEnv *env,jclass clazz);
+jobject JNI_getEnumColor(JNIEnv *env, jclass clazz);
+
+void JNI_findCustomClassInThread(JNIEnv *env, jclass clazz);
+
+void *threadFunction(void *args);
+
+jclass findClassByClassLoader(JNIEnv* env,const char* classPath);
 
 /**
  * JNI方法声明
  */
 const JNINativeMethod nativeMethods[] = {
-        {"invokeFunction",          "()V",                              (void *) JNI_invokeFunction},
-        {"transformBasicData",      "(ZBCSIJFD)V",                      (void *) JNI_transformBasicData},
-        {"transformBasicDataArray", "([Z[B[C[S[I[J[F[D)V",              (void *) JNI_transformBasicDataArray},
-        {"transformQuoteData",      "(Ljava/lang/String;)V",            (void *) JNI_transformQuoteData},
-        {"transformQuoteDataList",  "(Ljava/util/ArrayList;)V",         (void *) JNI_transformQuoteDataList},
-        {"getIntValue",             "()I",                              (void *) JNI_getIntValue},
-        {"getBooleanValue",         "()Z",                              (void *) JNI_getBooleanValue},
-        {"getQuoteValue",           "()Lcom/example/jniproject/Quote;", (void *) JNI_getQuoteValue},
-        {"multiThreadOperation",    "(Ljava/lang/Object;)V",            (void *) JNI_multiThreadOperation},
-        {"getArrayList",    "()Ljava/util/ArrayList;",            (void *) JNI_getArrayList},
-        {"getEnumColor",    "()Lcom/example/jniproject/EnumWrapper$Color;",            (void *) JNI_getEnumColor},
+        {"invokeFunction",          "()V",                                          (void *) JNI_invokeFunction},
+        {"transformBasicData",      "(ZBCSIJFD)V",                                  (void *) JNI_transformBasicData},
+        {"transformBasicDataArray", "([Z[B[C[S[I[J[F[D)V",                          (void *) JNI_transformBasicDataArray},
+        {"transformQuoteData",      "(Ljava/lang/String;)V",                        (void *) JNI_transformQuoteData},
+        {"transformQuoteDataList",  "(Ljava/util/ArrayList;)V",                     (void *) JNI_transformQuoteDataList},
+        {"getIntValue",             "()I",                                          (void *) JNI_getIntValue},
+        {"getBooleanValue",         "()Z",                                          (void *) JNI_getBooleanValue},
+        {"getQuoteValue",           "()Lcom/example/jniproject/Quote;",             (void *) JNI_getQuoteValue},
+        {"multiThreadOperation",    "(Ljava/lang/Object;)V",                        (void *) JNI_multiThreadOperation},
+        {"getArrayList",            "()Ljava/util/ArrayList;",                      (void *) JNI_getArrayList},
+        {"getEnumColor",            "()Lcom/example/jniproject/EnumWrapper$Color;", (void *) JNI_getEnumColor},
+        {"findCustomClassInThread", "()V",                                          (void *) JNI_findCustomClassInThread},
 };
 
 /**
@@ -201,7 +208,8 @@ jobject JNI_getQuoteValue(JNIEnv *env, jclass clazz) {
     //创建ArrayList对象,并且添加数据到数据集中
     jclass classArrayList = env->FindClass("java/util/ArrayList");
     jobject objArrayList = env->AllocObject(classArrayList);
-    jmethodID methodIDArrayList_add = env->GetMethodID(classArrayList, "add","(Ljava/lang/Object;)Z");
+    jmethodID methodIDArrayList_add = env->GetMethodID(classArrayList, "add",
+                                                       "(Ljava/lang/Object;)Z");
     jstring jstr = env->NewStringUTF("c++ArrayValue");
 
 // TODO this will crash when set jstr to the following method
@@ -219,31 +227,99 @@ jobject JNI_getQuoteValue(JNIEnv *env, jclass clazz) {
 
 }
 
-jobject JNI_getArrayList(JNIEnv *env,jclass clazz){
+jobject JNI_getArrayList(JNIEnv *env, jclass clazz) {
     //新建ArrayList对象
     jclass cls_ArrayList = env->FindClass("java/util/ArrayList");
     //jobject obj_ArrayList = env->AllocObject(cls_ArrayList);
     //构造方法(注意:这里新建ArrayList对象不能调用上面的AllocObject方法，会Crash)
-    jmethodID methoID_listInit = env->GetMethodID(cls_ArrayList,"<init>","()V");
-    jobject obj_ArrayList = env->NewObject(cls_ArrayList,methoID_listInit);
-    jmethodID methodID_add = env->GetMethodID(cls_ArrayList,"add","(Ljava/lang/Object;)Z");
+    jmethodID methoID_listInit = env->GetMethodID(cls_ArrayList, "<init>", "()V");
+    jobject obj_ArrayList = env->NewObject(cls_ArrayList, methoID_listInit);
+    jmethodID methodID_add = env->GetMethodID(cls_ArrayList, "add", "(Ljava/lang/Object;)Z");
     //新建Quote对象
     jclass cls_Quote = env->FindClass("com/example/jniproject/Quote");
     jobject obj_Quote = env->AllocObject(cls_Quote);
-    jmethodID methodID_setIntValue = env->GetMethodID(cls_Quote,"setIntValue","(I)V");
-    env->CallVoidMethod(obj_Quote,methodID_setIntValue,10);
+    jmethodID methodID_setIntValue = env->GetMethodID(cls_Quote, "setIntValue", "(I)V");
+    env->CallVoidMethod(obj_Quote, methodID_setIntValue, 10);
     //调用ArrayList中的add方法
-    env->CallBooleanMethod(obj_ArrayList,methodID_add,obj_Quote);
+    env->CallBooleanMethod(obj_ArrayList, methodID_add, obj_Quote);
     return obj_ArrayList;
 }
 
 //因为枚举类是一个内部类，所以在签名的地方表示内部类中需要写成 Class$Class,以$连接
 //因为枚举也是类，枚举中的值是静态变量
-jobject JNI_getEnumColor(JNIEnv *env,jclass clazz){
+jobject JNI_getEnumColor(JNIEnv *env, jclass clazz) {
     jclass cls_enumColor = env->FindClass("com/example/jniproject/EnumWrapper$Color");
-    jfieldID fid_RED = env->GetStaticFieldID(cls_enumColor,"GREEN","Lcom/example/jniproject/EnumWrapper$Color;");
-    jobject obj_RED = env->GetStaticObjectField(cls_enumColor,fid_RED);
+    jfieldID fid_RED = env->GetStaticFieldID(cls_enumColor, "GREEN",
+                                             "Lcom/example/jniproject/EnumWrapper$Color;");
+    jobject obj_RED = env->GetStaticObjectField(cls_enumColor, fid_RED);
     return obj_RED;
+}
+
+JavaVM *mGlobalJvm;//
+#include <pthread.h>//POSIX线程，FreeBSD、NetBSD、GNU/Linux、Mac OS X 和 Solaris跨平台
+
+//解决在c++线程中通过env->findClass找不到的问题
+void JNI_findCustomClassInThread(JNIEnv *env, jclass clazz) {
+    //JNIEnv对象仅在创建它的线程有效
+    //首先我们要保存当前jvm对象为全局引用，因为在方法中的局部引用是不能跨线程使用的
+    //保存全局对象一般是放在JNI_OnLoad方法中，因为JNI_OnLoad只调用一次
+    //JavaVM对象是线程共享的，在任何线程中都可以使用，并且一个Jvm只有一个JavaVM对象
+    jint result = env->GetJavaVM(&mGlobalJvm);
+    if (result != 0) {
+        LOGE("获取Jvm失败");
+        return;
+    }
+    //创建一个线程
+    pthread_t threadIdentification;//线程标识
+    int createResult = pthread_create(&threadIdentification, NULL, threadFunction, NULL);
+    if (createResult != 0) {
+        LOGE("创建线程失败");
+        return;
+    }
+
+}
+
+void *threadFunction(void *args) {
+    JNIEnv *env = nullptr;
+    int result = mGlobalJvm->AttachCurrentThread(&env, nullptr);
+    if (result != 0){
+        LOGE("获取JNIEnv失败");
+        return NULL;
+    }
+    //FindClass非系统类会返回Null
+//    jclass clsQuote = env->FindClass("com/example/jniproject/Quote");
+    //通过ClassLoader的loadClass方法来加载自定义的类
+    jclass clsQuote = findClassByClassLoader(env,"com/example/jniproject/Quote");
+    jobject quoteObj = env->AllocObject(clsQuote);
+
+    mGlobalJvm->DetachCurrentThread();
+    //释放线程资源:
+    //pthread_self()是获取当前线程id
+    pthread_detach(pthread_self());
+    return NULL;
+}
+
+/**
+ * 通过类加载器加载对应类路径的类
+ * @param classPath 待查找的类路径,比如:com/example/jniproject/Quote
+ * @return  jclass对象
+ */
+jclass findClassByClassLoader(JNIEnv* env,const char* classPath){
+    jclass classLoaderClass = env->FindClass("java/lang/ClassLoader");
+    //通过Object.class对象的getClassLoader获取ClassLoader对象
+    jclass clsObj = env->FindClass("java/lang/Object");
+    jobject objObj = env->AllocObject(clsObj);
+
+    jmethodID classLoaderMethodID = env->GetStaticMethodID(clsObj,"getClassLoader","()Ljava/lang/ClassLoader;");
+    jobject classLoaderObject = env->CallStaticObjectMethod(clsObj,classLoaderMethodID);
+    //获取ClassLoader的方法ID loadClass
+    jmethodID loadClassMethodID = env->GetMethodID(classLoaderClass,"loadClass", "(Ljava/lang/String;)Ljava/lang/Class;");
+    //找对应的类
+    jstring jClassPath = env->NewStringUTF(classPath);
+    jclass cls = static_cast<jclass>(env->CallObjectMethod(classLoaderObject, loadClassMethodID,
+                                                           jClassPath));
+    env->ReleaseStringUTFChars(jClassPath,classPath);
+    return cls;
 }
 
 

@@ -26,7 +26,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        JNI.getInstance().invokeFunction();//调用JNI方法
+        /*JNI.getInstance().invokeFunction();//调用JNI方法
         JNI.getInstance().transformBasicData(false,(byte)11,'c',(short)22,1222,223222422,111.11f,22.22220000);
         JNI.getInstance().transformBasicDataArray(booleanArray,byteArray,charArray,shortArray,intArray,longArray,floatArray,doubleArray);
         JNI.getInstance().transformQuoteData("hahaha");
@@ -47,7 +47,8 @@ public class MainActivity extends AppCompatActivity {
         EnumWrapper.Color color = JNI.getInstance().getEnumColor();
         Log.e("xiaojun","获取到的Color为:"+color);
         //多线程调用某一个jni函数
-        multiThreadOpearteNativeMethod();
+        multiThreadOpearteNativeMethod();*/
+        JNI.getInstance().findCustomClassInThread();
     }
 
     private void multiThreadOpearteNativeMethod(){

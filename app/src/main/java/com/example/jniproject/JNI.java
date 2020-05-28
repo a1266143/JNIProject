@@ -51,4 +51,9 @@ public class JNI {
      * @param objLock java层的同步锁对象
      */
     public native void multiThreadOperation(Object objLock);
+
+    /**
+     * 在线程中通过调用FindClass寻找App中的Class
+     */
+    public native void findCustomClassInThread();
 }
