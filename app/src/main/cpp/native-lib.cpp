@@ -46,7 +46,7 @@ void JNI_findCustomClassInThread(JNIEnv *env, jclass clazz);
 
 void *threadFunction(void *args);
 
-jclass findClassByClassLoader(JNIEnv* env,const char* classPath);
+jclass findClassByClassLoader(JNIEnv *env, const char *classPath);
 
 /**
  * JNI方法声明
@@ -88,6 +88,49 @@ bool unBindJavaNative(JNIEnv *env) {
     return env->UnregisterNatives(clazz) == 0;
 }
 
+//全局JVM，用于获取子线程的env
+JavaVM *mGlobalJvm;
+jobject mGlobalClassLoader;
+jmethodID mGlobalFindClassMethod;
+
+//缓存ClassLoader
+void cacheClassLoader(JavaVM *jvm) {
+    JNIEnv *env = nullptr;
+    int resultAttach = jvm->AttachCurrentThread(&env, NULL);
+    if (resultAttach != 0) {
+        LOGE("AttachCurrentThread失败");
+        return;
+    }
+    jclass randomClass = env->FindClass("com/example/jniproject/Quote");
+    jmethodID methodID_constrator = env->GetMethodID(randomClass, "<init>", "()V");
+    jobject randomObj = env->NewObject(randomClass, methodID_constrator);
+
+    jclass classLoaderClass = env->FindClass("java/lang/ClassLoader");
+    jmethodID getClassMethodID = env->GetMethodID(randomClass, "getClass", "()Ljava/lang/Class;");
+
+    jobject classObj = env->CallObjectMethod(randomObj, getClassMethodID);
+    jclass classClass = env->GetObjectClass(classObj);
+    jmethodID getClassLoaderMethodID = env->GetMethodID(classClass, "getClassLoader",
+                                                        "()Ljava/lang/ClassLoader;");
+    jobject globalClassLoader = env->CallObjectMethod(classObj, getClassLoaderMethodID);
+    mGlobalFindClassMethod = env->GetMethodID(classLoaderClass, "loadClass",
+                                              "(Ljava/lang/String;)Ljava/lang/Class;");
+    mGlobalClassLoader = env->NewGlobalRef(globalClassLoader);
+}
+
+jclass findClass(const char *name) {
+    JNIEnv *env = nullptr;
+    if (mGlobalJvm->AttachCurrentThread(&env, NULL) != 0) {
+        LOGE("获取JNIEnv失败");
+        return nullptr;
+    }
+    jstring classPath = env->NewStringUTF(name);
+    jobject obj = env->CallObjectMethod(mGlobalClassLoader, mGlobalFindClassMethod, classPath);
+    jclass cls = env->GetObjectClass(obj);
+//    env->ReleaseStringUTFChars(classPath,name);
+    return cls;
+}
+
 /**
  *动态加载JNI方法
  */
@@ -102,6 +145,8 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
         LOGE("---------------------------绑定本地方法失败------------------------");
     } else {
         LOGE("---------------------------绑定本地方法成功------------------------");
+        //缓存classLoader对象用于在native子线程中FindClass
+        cacheClassLoader(vm);
         return JNI_VERSION_1_6;
     }
 }
@@ -255,7 +300,6 @@ jobject JNI_getEnumColor(JNIEnv *env, jclass clazz) {
     return obj_RED;
 }
 
-JavaVM *mGlobalJvm;//
 #include <pthread.h>//POSIX线程，FreeBSD、NetBSD、GNU/Linux、Mac OS X 和 Solaris跨平台
 
 //解决在c++线程中通过env->findClass找不到的问题
@@ -282,46 +326,22 @@ void JNI_findCustomClassInThread(JNIEnv *env, jclass clazz) {
 void *threadFunction(void *args) {
     JNIEnv *env = nullptr;
     int result = mGlobalJvm->AttachCurrentThread(&env, nullptr);
-    if (result != 0){
+    if (result != 0) {
         LOGE("获取JNIEnv失败");
         return NULL;
     }
-    //FindClass非系统类会返回Null
-//    jclass clsQuote = env->FindClass("com/example/jniproject/Quote");
-    //通过ClassLoader的loadClass方法来加载自定义的类
-    jclass clsQuote = findClassByClassLoader(env,"com/example/jniproject/Quote");
-    jobject quoteObj = env->AllocObject(clsQuote);
+    jclass clsQuote = findClass("com/example/jniproject/Quote");
+    jmethodID methodID_constrator = env->GetMethodID(clsQuote, "<init>", "()V");
+    jobject  objQuote = env->NewObject(clsQuote,methodID_constrator);
+    jmethodID  methodiGetIntValue = env->GetMethodID(clsQuote,"getIntValue","()I");
+    jint value = env->CallIntMethod(objQuote,methodiGetIntValue);
+    LOGE("获取到的Value = %d",value);
 
-    mGlobalJvm->DetachCurrentThread();
     //释放线程资源:
     //pthread_self()是获取当前线程id
     pthread_detach(pthread_self());
     return NULL;
 }
-
-/**
- * 通过类加载器加载对应类路径的类
- * @param classPath 待查找的类路径,比如:com/example/jniproject/Quote
- * @return  jclass对象
- */
-jclass findClassByClassLoader(JNIEnv* env,const char* classPath){
-    jclass classLoaderClass = env->FindClass("java/lang/ClassLoader");
-    //通过Object.class对象的getClassLoader获取ClassLoader对象
-    jclass clsObj = env->FindClass("java/lang/Object");
-    jobject objObj = env->AllocObject(clsObj);
-
-    jmethodID classLoaderMethodID = env->GetStaticMethodID(clsObj,"getClassLoader","()Ljava/lang/ClassLoader;");
-    jobject classLoaderObject = env->CallStaticObjectMethod(clsObj,classLoaderMethodID);
-    //获取ClassLoader的方法ID loadClass
-    jmethodID loadClassMethodID = env->GetMethodID(classLoaderClass,"loadClass", "(Ljava/lang/String;)Ljava/lang/Class;");
-    //找对应的类
-    jstring jClassPath = env->NewStringUTF(classPath);
-    jclass cls = static_cast<jclass>(env->CallObjectMethod(classLoaderObject, loadClassMethodID,
-                                                           jClassPath));
-    env->ReleaseStringUTFChars(jClassPath,classPath);
-    return cls;
-}
-
 
 //这里使用c++11中的线程库实现线程sleep操作(注意，请在module中加入cppFlags "-std=c++11"以支持c++11
 void JNI_multiThreadOperation(JNIEnv *env, jclass clazz, jobject objLock) {
